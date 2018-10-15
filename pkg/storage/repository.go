@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"log"
 	"io"
 	"path/filepath"
 	"encoding/gob"
@@ -41,6 +42,7 @@ func NewDbStorage(dbPath string) (*DbStorage, error) {
 // CloseDb closes link to db
 func (s *DbStorage) CloseDb() error {
 	err := s.dbClient.Close()
+	log.Printf("clossin")
 	return err
 }
 
@@ -131,12 +133,68 @@ func (m *Media) unmarshalMedia(d []byte) (error) {
 	return err
 }
 
+
+func (s *FileStorage) getFilePath(fileID string) (string, error) {
+	subdir := filepath.Join(fileID[0:1], fileID[1:2])
+	fpath := filepath.Join(s.dirpathOriginal, subdir, fileID)
+	if _, err := os.Stat(fpath); os.IsNotExist(err) {
+		return "", err
+	}
+	return fpath, nil
+
+}
+
+func (s *FileStorage) checkSubDirs(fileID string) (string, error) {
+	subdir := filepath.Join(fileID[0:1], fileID[1:2])
+	if _, err := os.Stat(filepath.Join(s.dirpathOriginal, subdir)); os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(s.dirpathOriginal, fileID[0:1])); os.IsNotExist(err) {
+			err = os.Mkdir(filepath.Join(s.dirpathOriginal, fileID[0:1]), os.ModeDir)
+			if err != nil { return "", err}
+		}
+		err = os.Mkdir(filepath.Join(s.dirpathOriginal, subdir), os.ModeDir)
+		if err != nil { return "", err}
+	}
+	return filepath.Join(subdir,fileID), nil
+}
+
+//GetFile returns fils by uuid
+func (s *FileStorage) GetFile(fileID string) (*os.File, error) {
+	fpath, err := s.getFilePath(fileID)
+	if (err != nil ) { return nil, err }
+	return os.Open(fpath)
+}
+
 //AddFile inserts data into db
 func (s *FileStorage) AddFile(source *io.Reader, media *adding.Media) error {
-	fpath := filepath.Join(s.dirpathOriginal, media.FileID.String())
+	filep, err := s.checkSubDirs(media.FileID.String())
+	if err != nil { return err }
+	fpath := filepath.Join(s.dirpathOriginal, filep)
 	fd, err := os.Create(fpath)
 	if err != nil { return err}
 	defer fd.Close()
 	_, err = io.Copy(fd, *source)
 	return err
+}
+
+//GetByID returns  specific data by id
+func (s *DbStorage) GetByID(id uint64) (*viewing.Media, error) {
+	var media viewing.Media
+	err := s.dbClient.View(func (txn *badger.Txn) error{
+		sMedia := Media{}
+		key := mediaKeyPrefix + strconv.FormatUint(id ,10)
+		item, err := txn.Get([]byte(key))
+		if err != nil { return err }
+		val, err := item.Value()
+		if err != nil { return err }
+		sMedia.unmarshalMedia(val)
+		media = viewing.Media{
+			FileID: sMedia.FileID,
+			Filename: sMedia.Filename,
+			Size: sMedia.Size,
+			ID: sMedia.ID,
+			Key: sMedia.Key,
+		}
+		return err
+	})
+	return &media, err
 }

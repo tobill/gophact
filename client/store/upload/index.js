@@ -15,7 +15,7 @@ export function uploadAction(fileList) {
                 method: 'POST',
                 body: formData,
             };
-            await fetch('./upload', options);
+            await fetch('./api/file/upload', options);
         }
 
     }

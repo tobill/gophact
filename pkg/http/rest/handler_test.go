@@ -42,7 +42,7 @@ func TestGetItem(t *testing.T) {
 	adder = adding.NewService(s, fs)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
-	id := 0
+	id := 1
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
 
@@ -62,6 +62,37 @@ func TestGetItem(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGetFile(t *testing.T) {
+	var adder adding.Service 
+	var view viewing.Service
+	s, err := storage.NewDbStorage(testDbPath)
+	defer s.CloseDb()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fs := storage.NewFileStorage(testFilepath)
+	adder = adding.NewService(s, fs)
+	view = viewing.NewService(s, fs)
+	r := CreateRouter(adder, view);
+	id := 1
+	ts := httptest.NewServer(logRequest(r))
+	defer ts.Close()
+
+	url := fmt.Sprintf("%s/api/items/%d/file", ts.URL, id)
+	res, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf("%v", res)
+	defer res.Body.Close()
+	b := make([]byte, 5)
+    _, err = res.Body.Read(b)
+	if err != nil { t.Error(err) }
+}
+
+
 
 func TestAPIInfo(t *testing.T) {
 	var adder adding.Service 

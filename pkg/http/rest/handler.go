@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"time"
+	"strconv"
 	"io"
 	"encoding/json"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"html/template"
 	"gophoact/pkg/adding"
 	"gophoact/pkg/viewing"
+	"runtime"
 )
 
 // CreateRouter return http router
@@ -21,11 +24,28 @@ func CreateRouter(a adding.Service, v viewing.Service) *mux.Router {
 	return r
 }
 
+func printMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	log.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	log.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	log.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	log.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+
+func bToMb(b uint64) uint64 {
+    return b / 1024 / 1024
+}
+
+
 // LogMiddleware log every request by middleware
 func LogMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println(fmt.Sprintf("%s %s %s", r.RemoteAddr, r.Method, r.URL))
 		handler.ServeHTTP(w, r)
+		log.Println(fmt.Sprintf("%s %s %s", r.RemoteAddr, r.Method, r.URL))
+		printMemUsage()
 	})
 }
 
@@ -60,10 +80,9 @@ func apiHandler(r *mux.Router, a adding.Service, v viewing.Service)  {
 	}).Methods("GET")
 	api.HandleFunc("/file/upload", uploadFile(a)).Methods("POST")
 	api.HandleFunc("/items", getAll(v)).Methods("GET")
-	api.HandleFunc("/items/{id}", getItem).Methods("GET")
-	api.HandleFunc("/items/{id}/file", getFile).Methods("GET")
+	api.HandleFunc("/items/{id}", getItem(v)).Methods("GET")
+	api.HandleFunc("/items/{id}/file", getFile(v)).Methods("GET")
 }
-
 
 func getAll(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -98,25 +117,50 @@ func uploadFile(a adding.Service) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getItem(w http.ResponseWriter, r *http.Request) {
-	// v := mux.Vars(r)
-	// mf := backend.MediaFile{}
-	// sid := v["ID"]
-	// id, err := strconv.ParseUint(sid, 10, 64)
-	// err = mf.Load(id)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	fmt.Fprintf(w, "%v", err)
-	// }
-	// b, err := json.Marshal(mf)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	fmt.Fprintf(w, "%v", err)
-	// }
-	// fmt.Fprintf(w,"%s", b)
-	
+func getItem(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	sid := params["id"]
+	id, err := strconv.ParseUint(sid, 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%v", err)
+	}
+	var item *viewing.Media
+	item, err = v.GetByID(id)
+	if err != nil {
+	 	w.WriteHeader(http.StatusInternalServerError)
+	 	fmt.Fprintf(w, "%v", err)
+	}
+	b, err := json.Marshal(item)
+	if err != nil {
+	 	w.WriteHeader(http.StatusInternalServerError)
+	 	fmt.Fprintf(w, "%v", err)
+	}
+	fmt.Fprintf(w,"%s", b)
+	}
 } 
 
-func getFile(w http.ResponseWriter, r *http.Request) {
-	
+func getFile(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		sid := params["id"]
+		id, err := strconv.ParseUint(sid, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "%v", err)
+	   	}	
+		   
+		fop, err := v.GetFileByID(id)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "%v", err)
+		}
+		defer fop.Close()
+		
+		http.ServeContent(w,r, "image", time.Now(), fop)
+	}
 } 
+
+
+

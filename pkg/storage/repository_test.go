@@ -46,7 +46,6 @@ func TestFileAdd(t *testing.T) {
 	}
 }
 
-
 func TestGetAllMedia(t *testing.T) {
 	
 	db, err := storage.NewDbStorage(testDbPath)
@@ -64,5 +63,63 @@ func TestGetAllMedia(t *testing.T) {
 		log.Printf("%v", ele)
 	
 	}
+}
+
+func TestGetById(t *testing.T) {
+	
+	db, err := storage.NewDbStorage(testDbPath)
+	if err != nil { t.Error(err) }
+	defer db.CloseDb()
+	
+	var id uint64 = 1 
+
+	item, err := db.GetByID(id)
+	if err != nil { 
+		t.Error(err) 
+	}
+
+	if item.ID != 1 {
+		t.Errorf("item not found")
+	}
+	log.Printf("%v", item)
 
 }
+
+func TestGetFileByFileId(t *testing.T) {
+	
+	f := storage.NewFileStorage(testFilepath)
+
+	fileID := "a1b3f162-13df-44c2-a064-116537443b80"
+	//var r *os.File
+	r, err := f.GetFile(fileID)
+	defer r.Close()
+	if err != nil { t.Error(err) }
+
+	b := make([]byte, 5)
+	n1, err := r.Read(b)
+	if err != nil { t.Error(err) }
+	log.Printf("%v", n1)
+
+}
+
+func TestGetFileByFileIdNotFound(t *testing.T) {
+	f := storage.NewFileStorage(testFilepath)
+
+	fileID := "000"
+	//var r *os.File
+
+	r, err := f.GetFile(fileID)
+	defer r.Close()
+
+	if err == nil {
+		t.Errorf("error should be returned")
+	}
+
+	if _, ok := err.(*os.PathError); !ok {
+		t.Errorf("error should be os.PathError")
+	}
+
+
+}
+
+

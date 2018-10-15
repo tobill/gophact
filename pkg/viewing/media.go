@@ -12,3 +12,9 @@ type Media struct {
 	Size uint64
 	Filename string
 }
+
+//NotFoundError error if media is not found
+type NotFoundError struct {
+	error string
+	key string
+}
