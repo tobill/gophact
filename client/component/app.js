@@ -1,15 +1,15 @@
 import * as React from "react";
 import {bindActionCreators,} from "redux";
 import {connect,} from "react-redux";
-import UploadForm from "./upload";
-import {uploadAction} from "../store/upload"
+import { UploadForm }from "./upload";
+import { uploadAction  ,actionCreators } from "../store/root-actions"
 
 class Application extends React.Component {
 
-
     constructor(props) {
         super(props);
-        this.submitUpload = props.uploadAction
+        this.onInputChanged = props.uploadListFileAdd;
+        this.onSubmit = props.uploadListStart;
     }
 
     render() {
@@ -17,20 +17,29 @@ class Application extends React.Component {
         return (
             <div>
                 <div className="application">
-                    <UploadForm onSubmit={this.submitUpload}/>
+                    <UploadForm onSubmit={this.onSubmit} onInputChanged={this.onInputChanged}/>
                 </div>
             </div>
         );
     }
 }
 
-const mapStateToProps = (state) => ({});
+const mapStateToProps = (state) => {
+    return {
+        upload: state.upload
+    }
+};
 
-const mapDispatchToProps = (dispatch) => {
-   return {
-        uploadAction: (fileList) => {
-            dispatch(uploadAction(fileList));
+const mapDispatchToProps = (dispatch, state) => {
+    return {
+        uploadListFileAdd: (fileList) => {
+            dispatch(actionCreators.uploadListFileAdd(fileList));
+        }, 
+        uploadListStart: () => {
+            console.log("line")
+            dispatch(uploadAction(state.upload));
         } 
+ 
    } 
 } 
 

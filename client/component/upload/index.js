@@ -1,10 +1,11 @@
 import React from 'react'
+import {UploadFiles } from "./uploadFiles"
 import {
     Field,
     reduxForm
 } from 'redux-form'
 
-class UploadForm extends React.Component {
+export class UploadForm extends React.Component {
 
     constructor(props) {
         super(props);
@@ -16,14 +17,13 @@ class UploadForm extends React.Component {
 
     handleSubmit(event) {
         event.preventDefault();
-        console.log("call onsubmit");
-        this.props.onSubmit(this.fileInput.current.files);
+        console.log(event);
+        this.props.onSubmit();
     }
-
 
     handleInputChange(event) {
         event.preventDefault();
-        console.log("call oninput");
+        this.props.onInputChanged(this.fileInput.current.files);
     }
 
     render() {
@@ -34,6 +34,7 @@ class UploadForm extends React.Component {
                 <input type="file" className="custom-file-input" id="customFile" onInput={this.handleInputChange} ref={this.fileInput} multiple />
                 <label className="custom-file-label" htmlFor="customFile">Choose file</label>
               </div>
+              <UploadFiles/>
               <div>
                 <button className="btn btn-primary" type="submit" onSubmit={this.handleSubmit} >Submit</button> 
               </div>
@@ -44,4 +45,3 @@ class UploadForm extends React.Component {
 
 }
 
-export default UploadForm

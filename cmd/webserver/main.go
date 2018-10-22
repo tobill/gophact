@@ -52,8 +52,6 @@ func main() {
 		fmt.Printf("error")
 	}
 
-
-
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: rest.LogMiddleware(r),
@@ -76,6 +74,5 @@ func main() {
 	defer canceld()
 	srv.Shutdown(ctx)
     log.Println("Server gracefully stopped")
-
 }
 
