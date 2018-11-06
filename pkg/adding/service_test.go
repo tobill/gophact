@@ -1,6 +1,8 @@
 package adding_test
 
 import (
+	"gophoact/pkg/jobqueue"
+	"gophoact/pkg/editing"
 	"io"
 	"os"
 	"testing"
@@ -19,7 +21,12 @@ func TestAddMedia(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	fs := storage.NewFileStorage(testFilepath) 
 	if err != nil { t.Fatal(err)	}
-	a := adding.NewService(s, fs)
+	e := editing.NewService(s, fs)
+
+	jq := jobqueue.NewService(e)
+	defer jq.CloseQueue()
+
+	a := adding.NewService(s, fs, jq)
 
 	var size int64
 	size = 543455
@@ -38,7 +45,8 @@ func TestAddMedia(t *testing.T) {
 	var mpr io.Reader = mpf
 	
 	if err != nil { t.Error(err) }
-	a.AddMedia(&mpr, &mph)
+	_, err = a.AddMedia(&mpr, &mph)
 
+	if err != nil { t.Error(err) }
 
 }

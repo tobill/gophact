@@ -11,6 +11,7 @@ import (
 	"os"
 	"gophoact/pkg/adding"
 	"gophoact/pkg/viewing"
+	"gophoact/pkg/editing"
 )
 
 //DbStorage stores data in database 
@@ -55,13 +56,13 @@ func NewFileStorage(dirpath string) (*FileStorage) {
 }
 
 //AddMedia inserts data into db
-func (s *DbStorage) AddMedia(media *adding.Media) error {
+func (s *DbStorage) AddMedia(media *adding.Media) (uint64, error) {
 	if media.Key == "" {
 		seq, err := s.dbClient.GetSequence(mediaKeyCounter, 1)
 		defer seq.Release()
-		if err != nil { return err }
+		if err != nil { return 0, err }
 		media.ID, err = seq.Next()
-		if err != nil { return err }
+		if err != nil { return 0, err }
 		media.Key = mediaKeyPrefix + strconv.FormatUint(media.ID, 10)
 	}
 
@@ -74,6 +75,7 @@ func (s *DbStorage) AddMedia(media *adding.Media) error {
 		Key: media.Key,
 	}
 
+	
 	err := s.dbClient.Update(func(txn *badger.Txn) error {
 		d, errint := sMedia.marshalMedia()
 		if errint!= nil {
@@ -81,12 +83,12 @@ func (s *DbStorage) AddMedia(media *adding.Media) error {
 		}
 		key := []byte(media.Key)
 		errint = txn.Set(key, d)
-		return nil
+		return errint
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return media.ID, nil
 }
 
 
@@ -109,6 +111,8 @@ func (s *DbStorage) ListAll() ([]*viewing.Media, error) {
 				Size: sMedia.Size,
 				ID: sMedia.ID,
 				Key: sMedia.Key,
+				Mimetype: sMedia.Mimetype,
+
 			}
 
 			mfs = append(mfs, vMedia)
@@ -187,14 +191,69 @@ func (s *DbStorage) GetByID(id uint64) (*viewing.Media, error) {
 		val, err := item.Value()
 		if err != nil { return err }
 		sMedia.unmarshalMedia(val)
+		log.Printf("%v", sMedia)
 		media = viewing.Media{
 			FileID: sMedia.FileID,
 			Filename: sMedia.Filename,
 			Size: sMedia.Size,
 			ID: sMedia.ID,
 			Key: sMedia.Key,
+			Mimetype: sMedia.Mimetype,
 		}
 		return err
 	})
 	return &media, err
 }
+
+//LoadMedia returns  specific data by id
+func (s *DbStorage) LoadMedia(id uint64) (*editing.Media, error) {
+	var media editing.Media
+	err := s.dbClient.View(func (txn *badger.Txn) error{
+		sMedia := Media{}
+		key := mediaKeyPrefix + strconv.FormatUint(id ,10)
+		item, err := txn.Get([]byte(key))
+		if err != nil { return err }
+		val, err := item.Value()
+		if err != nil { return err }
+		sMedia.unmarshalMedia(val)
+		media = editing.Media{
+			FileID: sMedia.FileID,
+			Filename: sMedia.Filename,
+			Size: sMedia.Size,
+			ID: sMedia.ID,
+			Key: sMedia.Key,
+			MimeType: sMedia.Mimetype,
+		}
+		return err
+	})
+	return &media, err
+}
+
+//SaveMedia saves mediadata
+func (s *DbStorage) SaveMedia(media *editing.Media) error {
+	// convert to storage model
+	log.Printf("%v", media)
+	sMedia := &Media{
+		FileID: media.FileID,
+		Filename: media.Filename,
+		Size: media.Size,
+		ID: media.ID,
+		Key: media.Key,
+		Mimetype: media.MimeType,
+	}
+
+	err := s.dbClient.Update(func(txn *badger.Txn) error {
+		d, errint := sMedia.marshalMedia()
+		if errint!= nil {
+			return errint
+		}
+		key := []byte(media.Key)
+		errint = txn.Set(key, d)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+

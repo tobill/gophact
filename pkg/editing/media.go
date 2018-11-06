@@ -1,8 +1,8 @@
-package viewing
+package editing
 
 import (
-	"gopkg.in/h2non/filetype.v1/types"
 	"github.com/satori/go.uuid"
+	"gopkg.in/h2non/filetype.v1/types"
 )
 
 //Media datamodel for adding 
@@ -12,7 +12,7 @@ type Media struct {
 	Key string
 	Size uint64
 	Filename string
-	Mimetype types.Type
+	MimeType types.Type
 }
 
 //NotFoundError error if media is not found

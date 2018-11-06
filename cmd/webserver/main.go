@@ -2,6 +2,7 @@ package main
 
 
 import (
+	"gophoact/pkg/jobqueue"
 	"gophoact/pkg/http/rest"
 	"gophoact/pkg/adding"
 	"gophoact/pkg/viewing"
@@ -45,8 +46,11 @@ func main() {
 	}
 	fs := storage.NewFileStorage(filePath)
 	log.Println(fmt.Sprintf("running in %s ", Environment))
-	adder = adding.NewService(s, fs)
+	jq := jobqueue.NewService()
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
+
+
 	r := rest.CreateRouter(adder, view);
 	if err != nil {
 		fmt.Printf("error")
@@ -68,6 +72,7 @@ func main() {
 
 	log.Println("\nShutting down the server...")
 	err = s.CloseDb()
+	jq.CloseQueue()
 	if err != nil  { log.Print(err) }
 
 	ctx, canceld := context.WithTimeout(context.Background(), 5*time.Second)
