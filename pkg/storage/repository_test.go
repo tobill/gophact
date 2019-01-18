@@ -11,7 +11,7 @@ import (
 )
 
 
-const testDbPath = "../../testdb"
+const testDbPath = "../../testdb/testbolt.db"
 const testFilepath = "../../testdata"
 const testFile = "../../sampledata/TESTIMG.JPG"
 
@@ -20,11 +20,14 @@ func TestMediaAdd(t *testing.T){
 	defer r.CloseDb()
 	if err != nil { t.Error(err) }
 	m := adding.Media{
-		Filename: "Testfile",
+		Filename: "Tddddestfile",
 		Size: 12345,
 	}
 	m.FileID = uuid.NewV4()
-	r.AddMedia(&m)
+	_, err= r.AddMedia(&m)
+	if err != nil { t.Error(err) }
+
+
 }
 
 func TestFileAdd(t *testing.T) {
@@ -35,7 +38,7 @@ func TestFileAdd(t *testing.T) {
 		t.Error(err)
 	}
 	m := adding.Media{
-		Filename: "Testfile",
+		Filename: "Tesddddtfile",
 		Size: 12345,
 		FileID: uuid.NewV4(),
 	}
@@ -49,8 +52,8 @@ func TestFileAdd(t *testing.T) {
 func TestGetAllMedia(t *testing.T) {
 	
 	db, err := storage.NewDbStorage(testDbPath)
-	if err != nil { t.Error(err) }
 	defer db.CloseDb()
+	if err != nil { t.Error(err) }
 
 	items, err := db.ListAll()
 	if err != nil { t.Error(err) }
@@ -68,8 +71,9 @@ func TestGetAllMedia(t *testing.T) {
 func TestGetById(t *testing.T) {
 	
 	db, err := storage.NewDbStorage(testDbPath)
-	if err != nil { t.Error(err) }
 	defer db.CloseDb()
+
+	if err != nil { t.Error(err) }
 	
 	var id uint64 = 1 
 
@@ -91,7 +95,7 @@ func TestGetFileByFileId(t *testing.T) {
 
 	fileID := "a1b3f162-13df-44c2-a064-116537443b80"
 	//var r *os.File
-	r, err := f.GetFile(fileID)
+	r, err := f.GetOriginalFile(fileID)
 	defer r.Close()
 	if err != nil { t.Error(err) }
 
@@ -108,7 +112,7 @@ func TestGetFileByFileIdNotFound(t *testing.T) {
 	fileID := "000"
 	//var r *os.File
 
-	r, err := f.GetFile(fileID)
+	r, err := f.GetOriginalFile(fileID)
 	defer r.Close()
 
 	if err == nil {
@@ -118,8 +122,34 @@ func TestGetFileByFileIdNotFound(t *testing.T) {
 	if _, ok := err.(*os.PathError); !ok {
 		t.Errorf("error should be os.PathError")
 	}
-
-
 }
+
+func TestSaveMedia(t *testing.T) {
+	db, err := storage.NewDbStorage(testDbPath)
+	defer db.CloseDb()
+
+	if err != nil { t.Error(err) }
+
+	var objID uint64 = 1
+
+	m, err := db.LoadMedia(objID)
+	if err != nil { t.Error(err) }
+
+	log.Printf("%v", m)
+
+	err = db.SaveMedia(m)
+	if err != nil { t.Error(err) }
+
+	mfs, err := db.GetMediaPerMimetype(m.MimeType.MIME.Value)
+
+	for x := range mfs {
+		log.Printf("%v",mfs[x])
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 
 

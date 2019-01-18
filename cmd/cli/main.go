@@ -39,7 +39,6 @@ func importFromDir(add adding.Service, jq jobqueue.Service, es editing.Service, 
 			return err
 		}
 		jq.GenerateMimetypeJob(id)
-		
 	}
 	return nil
 }
@@ -49,22 +48,35 @@ func main() {
 	dbPath := flag.String("dbPath", "", "db path")
 	obejctID := flag.Uint64("objId", 1, "objectId")
 	filePath := flag.String("storage", "", "file path")
+	indexPath := flag.String("index", "", "file path")
 	sourcePath := flag.String("source", "", "file path")
+
 	
+
 	flag.Parse()
 
 	var view viewing.Service
 	s, err := storage.NewDbStorage(*dbPath)
-	fs := storage.NewFileStorage(*filePath)
-	log.Print(*dbPath)
 	if err != nil {
-		fmt.Printf("error")
+		fmt.Printf("error storage")
 		log.Panic(err)
 		
 	}
 	defer s.CloseDb()
+	fs := storage.NewFileStorage(*filePath)
+	if err != nil {
+		fmt.Printf("error fiel")
+		log.Panic(err)
+		
+	}
+	is, err := storage.NewIndexStorage(*indexPath)
+	defer is.CloseIndex()
 
-
+	if err != nil {
+		fmt.Printf("error index")
+		log.Panic(err)
+		
+	}
 	switch *action {
 	case "info":
 		view = viewing.NewService(s, fs)
@@ -85,7 +97,7 @@ func main() {
 		}
 
 	case "import-dir":
-		es := editing.NewService(s, fs)
+		es := editing.NewService(s, fs, is)
 		jq := jobqueue.NewService(es)
 		add := adding.NewService(s, fs, jq)
 		err := importFromDir(add, jq, es, *sourcePath)
@@ -94,9 +106,75 @@ func main() {
 			log.Panic(err)
 		}
 
-	case "runjob":
-		
+	case "detect-mimetype":
+		view = viewing.NewService(s, fs)
+		es := editing.NewService(s, fs, is)
+		jq := jobqueue.NewService(es)
+		defer jq.CloseQueue()
+		items, err := view.ListAll()
+		if err != nil {
+			log.Panic(err)
+		}
+		for _, entry := range items {
+			log.Printf("%v, %v", entry.ID, entry.Mimetype)
+			if entry.Mimetype.Extension == "" {
+				j := jobqueue.NewMimetypeJob(entry.ID, es)
+				j.Execute()
+			}
+		}
 
+	case "resize-images":
+		view = viewing.NewService(s, fs)
+		es := editing.NewService(s, fs, is)
+		jq := jobqueue.NewService(es)
+		defer jq.CloseQueue()
+		items, err := view.ListAll()
+		if err != nil {
+			log.Panic(err)
+		}
+		for _, entry := range items {
+			log.Printf("%v", entry.ID)
+			j := jobqueue.NewImageResizeJob(entry.ID, es)
+			j.Execute()
+		}
+
+
+
+	case "search":
+		//es := editing.NewService(s, fs, is)
+		result, err := is.FindDocuments("Versions:*")
+		
+		index := is.GetIndex()
+		c, err := index.DocCount()
+		log.Printf("%v", index)
+		log.Printf("%v", c)
+
+		ii, kvs, err := index.Advanced()
+		log.Printf("%v",ii)
+		log.Printf("%v", kvs)
+
+		ir, err := ii.Reader()
+		defer ir.Close()
+
+		fields, err  := ir.Fields()
+		log.Printf("%v", fields)
+
+		fd, err := ir.FieldDict("Versions")
+		log.Printf("%v", fd)
+	
+		for {
+			de, _ := fd.Next()
+			if de == nil{
+				break;
+			}
+			log.Printf("%v", de)
+		}
+		log.Printf("%v", result)
+		
+		if err != nil {
+			log.Panic(err)
+		}
+		
 	default:
 		fmt.Printf("Nothing to do")
 	} 

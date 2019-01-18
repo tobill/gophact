@@ -7,6 +7,7 @@ import (
 	"gophoact/pkg/adding"
 	"gophoact/pkg/viewing"
 	"gophoact/pkg/storage"
+	"gophoact/pkg/editing"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,7 +20,8 @@ import (
 var  Environment = "development"
 
 var filePath = "./data/"
-var dbPath = "./db/"
+var dbPath = "./db/data.db"
+var indexPath = "./index/"
 
 var (
 	port            = 8080 
@@ -39,6 +41,8 @@ func main() {
 	var adder adding.Service 
 	var view viewing.Service
 	s, err := storage.NewDbStorage(dbPath)
+	defer s.CloseDb()
+
 	if err != nil {
 		fmt.Printf("error")
 		log.Panic(err)
@@ -46,7 +50,15 @@ func main() {
 	}
 	fs := storage.NewFileStorage(filePath)
 	log.Println(fmt.Sprintf("running in %s ", Environment))
-	jq := jobqueue.NewService()
+	is, err := storage.NewIndexStorage(indexPath) 
+	defer is.CloseIndex()
+
+	if err != nil {		
+		fmt.Printf("error")
+		log.Panic(err)
+	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 

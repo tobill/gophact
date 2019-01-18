@@ -11,6 +11,8 @@ import (
 	"gophoact/pkg/storage"
 	"gophoact/pkg/viewing"
 	"gophoact/pkg/adding"
+	"gophoact/pkg/jobqueue"
+	"gophoact/pkg/editing"
 	"log"
 	"fmt"
 	"testing"
@@ -21,6 +23,7 @@ import (
 const testDbPath = "../../../testdb"
 const testFilepath = "../../../testdata"
 const testFile = "../../../sampledata/TESTIMG.JPG"
+const testIndexPath = "../../testdbindex"
 
 func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,12 +40,16 @@ func TestGetItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	fs := storage.NewFileStorage(testFilepath)
-	adder = adding.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
-	id := 1
+	id := 0
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
 
@@ -71,9 +78,13 @@ func TestGetFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	fs := storage.NewFileStorage(testFilepath)
-	adder = adding.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
 	id := 1
@@ -85,7 +96,6 @@ func TestGetFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("%v", res)
 	defer res.Body.Close()
 	b := make([]byte, 5)
     _, err = res.Body.Read(b)
@@ -103,7 +113,12 @@ func TestAPIInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	adder = adding.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
 	ts := httptest.NewServer(logRequest(r))
@@ -162,7 +177,12 @@ func TestAPIGetFirstItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	adder = adding.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
 	ts := httptest.NewServer(logRequest(r))
@@ -193,12 +213,17 @@ func TestAPIUploadFile(t *testing.T) {
 	var adder adding.Service 
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
+	defer s.CloseDb()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.CloseDb()
 	fs := storage.NewFileStorage(testFilepath)
-	adder = adding.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	jq := jobqueue.NewService(e)
+	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
 	r := CreateRouter(adder, view);
 	ts := httptest.NewServer(logRequest(r))

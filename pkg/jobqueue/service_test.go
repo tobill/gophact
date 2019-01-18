@@ -49,8 +49,12 @@ func TestExecuteJob(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	fs := storage.NewFileStorage(testFilepath) 
 	if err != nil { t.Fatal(err)	}
-	e := editing.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath) 
+	defer is.CloseIndex()
 
+	if err != nil { t.Fatal(err)	}
+	e := editing.NewService(s, fs, is)
+	
 	job := emptyJob {}
 	service := jobqueue.NewService(e)
 	defer service.CloseQueue()

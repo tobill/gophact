@@ -20,7 +20,7 @@ type Repository interface {
 
 //FileRepository access media repository
 type FileRepository interface {
-	GetFile(fileID string) (*os.File, error) 
+	GetOriginalFile(fileID string) (*os.File, error) 
 }
 
 type service struct {
@@ -50,7 +50,7 @@ func (s *service) GetFileByID(id uint64) (*os.File, error) {
 	if err != nil {
 		return nil, &NotFoundError{error:"Not found in Database",key: fmt.Sprintf("%d", id)}
 	}
-	fop, err := s.mFR.GetFile(m.FileID.String())
+	fop, err := s.mFR.GetOriginalFile(m.FileID.String())
 	if err != nil {
 		return nil, &NotFoundError{error:"Not found in Filesystem",key: fmt.Sprintf("%s", m.FileID)}
 	}

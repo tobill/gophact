@@ -13,4 +13,9 @@ type Media struct {
 	Size uint64
 	Filename string
 	Mimetype types.Type
+	Versions []string
+}
+
+type MimetypeIndex struct {
+	ObjectIds []uint64
 }

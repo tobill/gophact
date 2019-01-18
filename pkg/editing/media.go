@@ -13,6 +13,7 @@ type Media struct {
 	Size uint64
 	Filename string
 	MimeType types.Type
+	Versions []string
 }
 
 //NotFoundError error if media is not found

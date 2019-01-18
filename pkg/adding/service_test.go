@@ -11,8 +11,9 @@ import (
 	"mime/multipart"
 )
 
-const testDbPath = "../../testdb"
+const testDbPath = "../../testdb/testbolt.db"
 const testFilepath = "../../testdata"
+const testIndexPath = "../../testdbindex"
 const testFile = "../../sampledata/TESTIMG.JPG"
 
 func TestAddMedia(t *testing.T) {
@@ -21,7 +22,11 @@ func TestAddMedia(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	fs := storage.NewFileStorage(testFilepath) 
 	if err != nil { t.Fatal(err)	}
-	e := editing.NewService(s, fs)
+	is, err := storage.NewIndexStorage(testIndexPath)
+	if err != nil { t.Error(err) }
+	defer is.CloseIndex()
+
+	e := editing.NewService(s, fs, is)
 
 	jq := jobqueue.NewService(e)
 	defer jq.CloseQueue()

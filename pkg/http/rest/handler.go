@@ -82,6 +82,7 @@ func apiHandler(r *mux.Router, a adding.Service, v viewing.Service)  {
 	api.HandleFunc("/items", getAll(v)).Methods("GET")
 	api.HandleFunc("/items/{id}", getItem(v)).Methods("GET")
 	api.HandleFunc("/items/{id}/file", getFile(v)).Methods("GET")
+	api.HandleFunc("/items/{id}/file/{size}", getFileBySize(v)).Methods("GET")
 }
 
 func getAll(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +108,7 @@ func uploadFile(a adding.Service) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var mpr io.Reader = mpf
-		err = a.AddMedia(&mpr, mph)
+		_, err = a.AddMedia(&mpr, mph)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Error uploading file")
@@ -162,5 +163,25 @@ func getFile(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
 	}
 } 
 
+func getFileBySize(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		sid := params["id"]
+		id, err := strconv.ParseUint(sid, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "%v", err)
+	   	}	
+		   
+		fop, err := v.GetFileByID(id)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "%v", err)
+		}
+		defer fop.Close()
+		
+		http.ServeContent(w,r, "image", time.Now(), fop)
+	}
+} 
 
 

@@ -1,6 +1,7 @@
 package jobqueue
 
 import (
+	"io"
 	"log"
 	"gophoact/pkg/editing"
     "sync"
@@ -16,12 +17,14 @@ type Service interface {
     EnqueueJob(Job)
     CloseQueue()
     GenerateMimetypeJob(objetcID uint64)
+    GenerateResizeJob(objetcID uint64)
 }
 
 //EditingService dummy
 type EditingService interface {
     LoadMedia(objectID uint64) (*editing.Media, error)
-	LoadMediaWithFiledata(objectID uint64) (*editing.Media, *os.File, error)
+    LoadMediaWithFiledata(objectID uint64) (*editing.Media, *os.File, error)
+    AddSmallImage(objectID uint64, mr *io.Reader) (error)
 	SaveMedia(*editing.Media) error
 }
 
@@ -57,6 +60,14 @@ func (s *service) GenerateMimetypeJob(objetcID uint64) {
     mtjob := NewMimetypeJob(objetcID, s.es) 
     s.EnqueueJob(mtjob)
 }
+
+func (s *service) GenerateResizeJob(objetcID uint64) {
+    log.Printf("generate")
+    mtjob := NewImageResizeJob(objetcID, s.es) 
+    s.EnqueueJob(mtjob)
+}
+
+
 
 func (s *service) CloseQueue () {
     close(s.queue)

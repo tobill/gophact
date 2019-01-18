@@ -11,6 +11,7 @@ type mimetypeJob struct {
 	jobName string 
 	objectID uint64
 	edit editing.Service
+	jobQueue Service
 }
 
 func (j *mimetypeJob) Execute() (int) {
@@ -38,6 +39,7 @@ func (j *mimetypeJob) Execute() (int) {
 	}
 	m.MimeType = t
 	j.edit.SaveMedia(m)
+	log.Printf("%v", t)
 	return j.status
 }
 

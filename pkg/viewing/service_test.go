@@ -1,12 +1,13 @@
 package viewing_test
 
 import (
+	"log"
 	"testing"
 	"gophoact/pkg/storage"
 	"gophoact/pkg/viewing"
 )
 
-const testDbPath = "../../testdb"
+const testDbPath = "../../testdb/testbolt.db"
 const testFilepath = "../../testdata"
 const testFile = "../../sampledata/TESTIMG.JPG"
 
@@ -22,6 +23,11 @@ func TestListAllMedia(t *testing.T) {
 	if len(items) == 0 {
 		t.Errorf("no items returned %v", err)
 	} 
+
+	for _, ele := range items {
+		log.Printf("%v", ele)
+	
+	}
 }
 
 
@@ -42,6 +48,9 @@ func TestGetByID(t *testing.T) {
 	if item.ID  != id {
 		t.Errorf("no items returned %v", err)
 	} 
+
+	log.Printf("%v", item)
+	
 }
 
 
