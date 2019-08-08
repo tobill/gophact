@@ -55,7 +55,7 @@ func TestGetAllMedia(t *testing.T) {
 	defer db.CloseDb()
 	if err != nil { t.Error(err) }
 
-	items, err := db.ListAll()
+	items, err := db.ListAll(0,30)
 	if err != nil { t.Error(err) }
 
 	if len(items) == 0 {
@@ -93,7 +93,7 @@ func TestGetFileByFileId(t *testing.T) {
 	
 	f := storage.NewFileStorage(testFilepath)
 
-	fileID := "a1b3f162-13df-44c2-a064-116537443b80"
+	fileID := "05e8b739-96c5-4376-8a8e-cbfd54c74348"
 	//var r *os.File
 	r, err := f.GetOriginalFile(fileID)
 	defer r.Close()

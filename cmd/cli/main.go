@@ -88,7 +88,7 @@ func main() {
 
 	case "info-all":
 		view = viewing.NewService(s, fs)
-		m, err := view.ListAll()
+		m, err := view.ListAll(0, 30)
 		if err != nil {
 			fmt.Print(err)
 		}
@@ -111,7 +111,7 @@ func main() {
 		es := editing.NewService(s, fs, is)
 		jq := jobqueue.NewService(es)
 		defer jq.CloseQueue()
-		items, err := view.ListAll()
+		items, err := view.ListAll(0, 30)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -128,7 +128,7 @@ func main() {
 		es := editing.NewService(s, fs, is)
 		jq := jobqueue.NewService(es)
 		defer jq.CloseQueue()
-		items, err := view.ListAll()
+		items, err := view.ListAll(0, 130)
 		if err != nil {
 			log.Panic(err)
 		}

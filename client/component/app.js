@@ -35,6 +35,7 @@ const mapDispatchToProps = (dispatch, state) => {
         uploadListFileAdd: (fileList) => {
             dispatch(actionCreators.uploadListFileAdd(fileList));
         }, 
+
         uploadListStart: () => {
             console.log("line")
             dispatch(uploadAction(state.upload));

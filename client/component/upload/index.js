@@ -11,7 +11,7 @@ export class UploadForm extends React.Component {
         super(props);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleInputChange = this.handleInputChange.bind(this);
-        this.fileInput = React.createRef();
+        //this.fileInput = React.createRef();
     }
     //const { handleSubmit } = props
 
@@ -23,7 +23,7 @@ export class UploadForm extends React.Component {
 
     handleInputChange(event) {
         event.preventDefault();
-        this.props.onInputChanged(this.fileInput.current.files);
+        this.props.onInputChanged(event.target.files);
     }
 
     render() {
@@ -31,12 +31,12 @@ export class UploadForm extends React.Component {
             <div>
               <form onSubmit={this.handleSubmit}>
               <div className="custom-file">
-                <input type="file" className="custom-file-input" id="customFile" onInput={this.handleInputChange} ref={this.fileInput} multiple />
+                <input type="file" className="custom-file-input" id="customFile" onInput={this.handleInputChange}  multiple />
                 <label className="custom-file-label" htmlFor="customFile">Choose file</label>
               </div>
               <UploadFiles/>
               <div>
-                <button className="btn btn-primary" type="submit" onSubmit={this.handleSubmit} >Submit</button> 
+                <button className="btn btn-primary btn-block" type="submit" onSubmit={this.handleSubmit} >Submit</button> 
               </div>
               </form>
             </div>

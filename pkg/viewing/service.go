@@ -7,14 +7,14 @@ import (
 
 //Service provides media adding
 type Service interface {
-	ListAll() ([]*Media, error)
+	ListAll(numStart uint64, numItems uint64) ([]*Media, error)
 	GetByID(id uint64) (*Media, error)
 	GetFileByID(id uint64) (*os.File, error)
 }
 
 //Repository access media repository
 type Repository interface {
-	ListAll() ([]*Media, error)
+	ListAll(start uint64, numOfItems uint64) ([]*Media, error)
 	GetByID(id uint64) (*Media, error)
 }
 
@@ -37,8 +37,8 @@ func (e *NotFoundError) Error() (string) {
 	return fmt.Sprintf("Key \"%s\" Not Found: %s", e.key, e.error)
 }
 
-func (s *service) ListAll() ([]*Media, error) {
-	return s.mR.ListAll()
+func (s *service) ListAll(numStart uint64, numItems uint64) ([]*Media, error) {
+	return s.mR.ListAll(numStart, numItems)
 }
 
 func (s *service) GetByID(id uint64) (*Media, error) {

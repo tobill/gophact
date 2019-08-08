@@ -69,11 +69,11 @@ func main() {
 	}
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
+		Addr:    fmt.Sprintf("127.0.0.1:%d", port),
 		Handler: rest.LogMiddleware(r),
 	}
 	go func() {
-		log.Printf("Listening on http://0.0.0.0:%d\n", 8080)
+		log.Printf("Listening on http://127.0.0.1:%d\n", 8080)
 
 		if err := srv.ListenAndServe(); err != nil {
 			log.Fatal(err)

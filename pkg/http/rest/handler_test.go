@@ -1,29 +1,29 @@
 package rest
 
 import (
-	"io"
-	"path/filepath"
-	"mime/multipart"
 	"bytes"
-	"os"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"gophoact/pkg/adding"
+	"gophoact/pkg/editing"
+	"gophoact/pkg/jobqueue"
 	"gophoact/pkg/storage"
 	"gophoact/pkg/viewing"
-	"gophoact/pkg/adding"
-	"gophoact/pkg/jobqueue"
-	"gophoact/pkg/editing"
+	"io"
+	"io/ioutil"
 	"log"
-	"fmt"
-	"testing"
-	"net/http/httptest"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
-const testDbPath = "../../../testdb"
+const testDbPath = "../../../testdb/testbolt.db"
 const testFilepath = "../../../testdata"
 const testFile = "../../../sampledata/TESTIMG.JPG"
-const testIndexPath = "../../testdbindex"
+const testIndexPath = "../../../testdbindex"
 
 func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func logRequest(handler http.Handler) http.Handler {
 }
 
 func TestGetItem(t *testing.T) {
-	var adder adding.Service 
+	var adder adding.Service
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
 	defer s.CloseDb()
@@ -41,14 +41,16 @@ func TestGetItem(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	is, err := storage.NewIndexStorage(testIndexPath) 
+	is, err := storage.NewIndexStorage(testIndexPath)
 	defer is.CloseIndex()
-	if err != nil { t.Fatal(err)	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	e := editing.NewService(s, fs, is)
 	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
-	r := CreateRouter(adder, view);
+	r := CreateRouter(adder, view)
 	id := 0
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
@@ -58,7 +60,7 @@ func TestGetItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resBody, err  := ioutil.ReadAll(res.Body)
+	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +73,7 @@ func TestGetItem(t *testing.T) {
 }
 
 func TestGetFile(t *testing.T) {
-	var adder adding.Service 
+	var adder adding.Service
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
 	defer s.CloseDb()
@@ -79,14 +81,16 @@ func TestGetFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	is, err := storage.NewIndexStorage(testIndexPath) 
+	is, err := storage.NewIndexStorage(testIndexPath)
 	defer is.CloseIndex()
-	if err != nil { t.Fatal(err)	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	e := editing.NewService(s, fs, is)
 	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
-	r := CreateRouter(adder, view);
+	r := CreateRouter(adder, view)
 	id := 1
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
@@ -98,14 +102,14 @@ func TestGetFile(t *testing.T) {
 	}
 	defer res.Body.Close()
 	b := make([]byte, 5)
-    _, err = res.Body.Read(b)
-	if err != nil { t.Error(err) }
+	_, err = res.Body.Read(b)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
-
-
 func TestAPIInfo(t *testing.T) {
-	var adder adding.Service 
+	var adder adding.Service
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
 	defer s.CloseDb()
@@ -113,14 +117,16 @@ func TestAPIInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	is, err := storage.NewIndexStorage(testIndexPath) 
+	is, err := storage.NewIndexStorage(testIndexPath)
 	defer is.CloseIndex()
-	if err != nil { t.Fatal(err)	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	e := editing.NewService(s, fs, is)
 	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
-	r := CreateRouter(adder, view);
+	r := CreateRouter(adder, view)
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
 	url := fmt.Sprintf("%v/api/info", ts.URL)
@@ -128,7 +134,7 @@ func TestAPIInfo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resBody, err  := ioutil.ReadAll(res.Body)
+	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,10 +147,10 @@ func generateUploadrequest(uri string, params map[string]string, paramName, path
 		return nil, err
 	}
 	defer file.Close()
-	
+
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, filepath.Base(testFile)) 
+	part, err := writer.CreateFormFile(paramName, filepath.Base(testFile))
 	if err != nil {
 		return nil, err
 	}
@@ -166,9 +172,8 @@ func generateUploadrequest(uri string, params map[string]string, paramName, path
 	return req, err
 }
 
-
 func TestAPIGetFirstItems(t *testing.T) {
-	var adder adding.Service 
+	var adder adding.Service
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
 	defer s.CloseDb()
@@ -177,14 +182,16 @@ func TestAPIGetFirstItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	is, err := storage.NewIndexStorage(testIndexPath) 
+	is, err := storage.NewIndexStorage(testIndexPath)
 	defer is.CloseIndex()
-	if err != nil { t.Fatal(err)	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	e := editing.NewService(s, fs, is)
 	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
-	r := CreateRouter(adder, view);
+	r := CreateRouter(adder, view)
 	ts := httptest.NewServer(logRequest(r))
 	defer ts.Close()
 
@@ -193,9 +200,9 @@ func TestAPIGetFirstItems(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resBody, err  := ioutil.ReadAll(res.Body)
+	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-			t.Fatal(err)
+		t.Fatal(err)
 	}
 	var items []viewing.Media
 	err = json.Unmarshal(resBody, &items)
@@ -210,7 +217,7 @@ func TestAPIGetFirstItems(t *testing.T) {
 }
 
 func TestAPIUploadFile(t *testing.T) {
-	var adder adding.Service 
+	var adder adding.Service
 	var view viewing.Service
 	s, err := storage.NewDbStorage(testDbPath)
 	defer s.CloseDb()
@@ -218,14 +225,16 @@ func TestAPIUploadFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs := storage.NewFileStorage(testFilepath)
-	is, err := storage.NewIndexStorage(testIndexPath) 
+	is, err := storage.NewIndexStorage(testIndexPath)
 	defer is.CloseIndex()
-	if err != nil { t.Fatal(err)	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	e := editing.NewService(s, fs, is)
 	jq := jobqueue.NewService(e)
 	adder = adding.NewService(s, fs, jq)
 	view = viewing.NewService(s, fs)
-	r := CreateRouter(adder, view);
+	r := CreateRouter(adder, view)
 	ts := httptest.NewServer(logRequest(r))
 
 	defer ts.Close()
@@ -241,8 +250,8 @@ func TestAPIUploadFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
-    client := &http.Client{}
+
+	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -252,7 +261,7 @@ func TestAPIUploadFile(t *testing.T) {
 		t.Fatal("Error endpoint not dfound")
 	}
 
-	resBody, err  := ioutil.ReadAll(res.Body)
+	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

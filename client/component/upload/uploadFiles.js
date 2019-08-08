@@ -1,5 +1,6 @@
 import * as React from "react";
 import {connect,} from "react-redux";
+import { actionCreators } from "../../store/root-actions"
 
 class UploadFilesComponent extends React.Component {
 
@@ -9,7 +10,7 @@ class UploadFilesComponent extends React.Component {
     }
 
     handleRemove(event){
-        console.log(event);
+        this.props.uploadListFileRemove(event.target.id);
     }
 
     render() {
@@ -23,7 +24,7 @@ class UploadFilesComponent extends React.Component {
                 return <li className="list-group-item" key={index} >
                     <span>{uf.name}</span>
                     <a href="#" className="uplaod-file-item badge badge-danger float-right" 
-                        onTouchEndCapture={this.handleRemove} onClick={this.handleRemove}>
+                        onTouchEndCapture={this.handleRemove} onClick={this.handleRemove} id={index}>
                         Remove
                     </a>
                 </li>
@@ -43,6 +44,9 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
     return {
+        uploadListFileRemove: (id) => {
+            dispatch(actionCreators.uploadListFileRemove(id));
+        }, 
         } 
 } 
 

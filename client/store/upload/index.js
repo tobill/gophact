@@ -1,4 +1,5 @@
 export const UPLOAD_LIST_FILE_ADDED = "UPLOAD_LIST_FILE_ADDED"
+export const UPLOAD_LIST_FILE_REMOVED = "UPLOAD_LIST_FILE_REMOVED"
 export const UPLOAD_LIST_UPLOAD_STARTED = "UPLOAD_LIST_UPLOAD_STARTED"
 export const UPLOAD_LIST_UPLOAD_SUCCESSFUL = "UPLOAD_LIST_UPLOAD_SUCCESSFUL"
 export const UPLOAD_LIST_UPLOAD_FAILURE = "UPLOAD_LIST_UPLOAD_FAILURE"
@@ -9,6 +10,12 @@ export function uploadReduce(state = {fileList: []}, action) {
         return {
             ...state,
             fileList:  [...state.fileList, ...action.payload]
+        }
+    case UPLOAD_LIST_FILE_REMOVED:
+        return {
+            ...state,
+            fileList:  [...state.fileList.slice(0, action.payload), 
+                    ...state.fileList.slice(action.payload+1)],
         }
     case UPLOAD_LIST_UPLOAD_SUCCESSFUL:
         return {
@@ -32,6 +39,12 @@ export const UploadListActions = {
         return {
             payload: payload,
             type: UPLOAD_LIST_FILE_ADDED
+            };
+    },
+    uploadListFileRemove: (payload) => {
+        return {
+            payload: payload,
+            type: UPLOAD_LIST_FILE_REMOVED
             };
     },
     uploadListUploadStart: () => ({  
