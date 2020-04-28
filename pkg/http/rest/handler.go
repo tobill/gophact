@@ -54,7 +54,7 @@ type IndexPage struct {
 	JsHostURL string
 }
 
-const devHost = "http://localhost:5000"
+const devHost = "." // "http://localhost:5000"
 const prodHost = ""
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +88,6 @@ func getAll(v viewing.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		p := r.URL.Query()["p"]
-		log.Printf("%d", len(p))
 		var page uint64
 		page = 0
 		if len(p) > 0 {

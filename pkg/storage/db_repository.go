@@ -9,7 +9,6 @@ import (
 	"gophoact/pkg/viewing"
 	"log"
 	"strconv"
-
 	"github.com/boltdb/bolt"
 )
 
@@ -101,7 +100,6 @@ func (s *DbStorage) AddMedia(media *adding.Media) (uint64, error) {
 //ListAll returns all entries
 func (s *DbStorage) ListAll(numStart uint64, numItems uint64) ([]*viewing.Media, error) {
 	var mfs []*viewing.Media
-	log.Printf("starting")
 	err := s.dbClient.View(func(txn *bolt.Tx) error {
 		bucket, err := getBucket(mediaBucket, txn)
 		if err != nil {

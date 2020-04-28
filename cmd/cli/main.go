@@ -1,19 +1,19 @@
 package main
 
 import (
-	"io"
-	"os"
-	"mime/multipart"
-	"io/ioutil"
-	"gophoact/pkg/jobqueue"
-	"gophoact/pkg/editing"
+	"flag"
+	"fmt"
 	"gophoact/pkg/adding"
+	"gophoact/pkg/editing"
+	"gophoact/pkg/jobqueue"
 	"gophoact/pkg/storage"
 	"gophoact/pkg/viewing"
-	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
-	"flag"
-	)
+	"mime/multipart"
+	"os"
+)
 
 
 func importFromDir(add adding.Service, jq jobqueue.Service, es editing.Service, srcPath string) error {
@@ -51,18 +51,17 @@ func main() {
 	indexPath := flag.String("index", "", "file path")
 	sourcePath := flag.String("source", "", "file path")
 
-	
-
 	flag.Parse()
-
 	var view viewing.Service
+
 	s, err := storage.NewDbStorage(*dbPath)
 	if err != nil {
-		fmt.Printf("error storage")
-		log.Panic(err)
-		
+		log.Printf("error opening Db, dbPath is needed")
+		flag.PrintDefaults()
+		os.Exit(0)
 	}
 	defer s.CloseDb()
+
 	fs := storage.NewFileStorage(*filePath)
 	if err != nil {
 		fmt.Printf("error fiel")
@@ -73,9 +72,9 @@ func main() {
 	defer is.CloseIndex()
 
 	if err != nil {
-		fmt.Printf("error index")
-		log.Panic(err)
-		
+		log.Printf("error opening index, indexPath is needed")
+		flag.PrintDefaults()
+		os.Exit(0)
 	}
 	switch *action {
 	case "info":
@@ -165,7 +164,7 @@ func main() {
 		for {
 			de, _ := fd.Next()
 			if de == nil{
-				break;
+				break
 			}
 			log.Printf("%v", de)
 		}
@@ -177,6 +176,8 @@ func main() {
 		
 	default:
 		fmt.Printf("Nothing to do")
+		fmt.Printf("Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
 	} 
 
 }

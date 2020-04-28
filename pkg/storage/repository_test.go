@@ -11,7 +11,7 @@ import (
 )
 
 
-const testDbPath = "../../testdb/testbolt.db"
+const testDbPath = "../../testdb/1q"
 const testFilepath = "../../testdata"
 const testFile = "../../sampledata/TESTIMG.JPG"
 
