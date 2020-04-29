@@ -19,10 +19,15 @@ import (
 func importFromDir(add adding.Service, jq jobqueue.Service, es editing.Service, srcPath string) error {
 	files, err := ioutil.ReadDir(srcPath)
 	if err != nil  {
-		log.Printf("Error reading src dir")
+		log.Printf("Error reading src dir %v", srcPath)
+
 		return err
 	}
 	for _, f := range files {
+		if f.IsDir(){
+			importFromDir(add, jq, es, srcPath + "/" + f.Name())
+			continue
+		}
 		log.Printf("%s", f.Name())
 		mph := multipart.FileHeader{
 			Filename: f.Name(), 
