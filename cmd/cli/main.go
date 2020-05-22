@@ -103,7 +103,7 @@ func main() {
 	case "import-dir":
 		es := editing.NewService(s, fs, is)
 		jq := jobqueue.NewService(es)
-		add := adding.NewService(s, fs, jq)
+		add := adding.NewService(s, fs, is)
 		err := importFromDir(add, jq, es, *sourcePath)
 		defer jq.CloseQueue()
 		if err != nil {
