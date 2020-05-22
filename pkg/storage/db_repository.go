@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"errors"
+	"github.com/boltdb/bolt"
 	"gophoact/pkg/adding"
+	"gophoact/pkg/deleting"
 	"gophoact/pkg/editing"
 	"gophoact/pkg/viewing"
 	"log"
 	"strconv"
-	"github.com/boltdb/bolt"
 )
 
 //DbStorage stores data in database
@@ -57,7 +58,7 @@ func getBucket(bucketname []byte, tx *bolt.Tx) (*bolt.Bucket, error) {
 }
 
 //AddMedia inserts data into db
-func (s *DbStorage) AddMedia(media *adding.Media) (uint64, error) {
+func (s *DbStorage) AddMedia(media *adding.Media) (*adding.Media, error) {
 
 	err := s.dbClient.Update(func(txn *bolt.Tx) error {
 		bucket, err := getBucket(mediaBucket, txn)
@@ -79,6 +80,7 @@ func (s *DbStorage) AddMedia(media *adding.Media) (uint64, error) {
 			Size:     media.Size,
 			ID:       media.ID,
 			Key:      media.Key,
+			CheckSum: media.CheckSum,
 		}
 
 		d, errint := sMedia.marshalMedia()
@@ -92,9 +94,9 @@ func (s *DbStorage) AddMedia(media *adding.Media) (uint64, error) {
 		return errint
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return media.ID, nil
+	return media, nil
 }
 
 //ListAll returns all entries
@@ -111,6 +113,7 @@ func (s *DbStorage) ListAll(numStart uint64, numItems uint64) ([]*viewing.Media,
 			sMedia := Media{}
 			sMedia.unmarshalMedia(v)
 			// convert to storage model
+
 			vMedia := &viewing.Media{
 				FileID:   sMedia.FileID,
 				Filename: sMedia.Filename,
@@ -118,12 +121,13 @@ func (s *DbStorage) ListAll(numStart uint64, numItems uint64) ([]*viewing.Media,
 				ID:       sMedia.ID,
 				Key:      sMedia.Key,
 				Mimetype: sMedia.Mimetype,
+				CheckSum: sMedia.CheckSum,
 			}
 			mfs = append(mfs, vMedia)
 		}
 		return nil
 	})
-	return mfs[numStart : numStart+numItems], err
+	return mfs, err
 }
 
 func (m *Media) marshalMedia() ([]byte, error) {
@@ -160,6 +164,7 @@ func (s *DbStorage) GetByID(id uint64) (*viewing.Media, error) {
 			ID:       sMedia.ID,
 			Key:      sMedia.Key,
 			Mimetype: sMedia.Mimetype,
+			CheckSum: sMedia.CheckSum,
 		}
 		return nil
 	})
@@ -190,6 +195,7 @@ func (s *DbStorage) LoadMedia(id uint64) (*editing.Media, error) {
 			Key:      sMedia.Key,
 			MimeType: sMedia.Mimetype,
 			Versions: sMedia.Versions,
+			CheckSum: sMedia.CheckSum,
 		}
 		return nil
 	})
@@ -207,6 +213,7 @@ func (s *DbStorage) SaveMedia(media *editing.Media) error {
 		Key:      media.Key,
 		Mimetype: media.MimeType,
 		Versions: media.Versions,
+		CheckSum: media.CheckSum,
 	}
 
 	err := s.dbClient.Update(func(txn *bolt.Tx) error {
@@ -226,10 +233,10 @@ func (s *DbStorage) SaveMedia(media *editing.Media) error {
 	if err != nil {
 		return err
 	}
-	err = s.updateMimetypeIndex(media.MimeType.MIME.Value, media.ID)
-	if err != nil {
-		return err
-	}
+	//err = s.updateMimetypeIndex(media.MimeType.MIME.Value, media.ID)
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }
 
@@ -241,99 +248,109 @@ func findValPos(slice []uint64, val uint64) int {
 		if slice[x] == val {
 			return -1
 		}
-
 	}
 	return len(slice)
 }
 
-func insertIntoList(slice []uint64, val uint64) []uint64 {
-	length := len(slice)
-	if length == 0 {
-		return append(slice, val)
-	}
-	pos := findValPos(slice, val)
-	if pos == -1 {
-		return slice
-	}
-	slice = append(slice, 1)
-	for i := length; i > pos; i-- {
-		slice[i] = slice[i-1]
-	}
-	slice[pos] = val
-	return slice
-}
+//func insertIntoList(slice []uint64, val uint64) []uint64 {
+//	length := len(slice)
+//	if length == 0 {
+//		return append(slice, val)
+//	}
+//	pos := findValPos(slice, val)
+//	if pos == -1 {
+//		return slice
+//	}
+//	slice = append(slice, 1)
+//	for i := length; i > pos; i-- {
+//		slice[i] = slice[i-1]
+//	}
+//	slice[pos] = val
+//	return slice
+//}
+//
+//func (s *DbStorage) updateMimetypeIndex(mt string, objID uint64) error {
+//	err := s.dbClient.Update(func(txn *bolt.Tx) error {
+//		bucket, err := getBucket(mimetypeBucket, txn)
+//		if err != nil {
+//			return err
+//		}
+//
+//		key := []byte(mimetypeKeyPrefix + mt)
+//		item := bucket.Get(key)
+//		var mti MimetypeIndex
+//		if item == nil {
+//			mti = MimetypeIndex{
+//				ObjectIds: append(make([]uint64, 0), objID),
+//			}
+//		} else {
+//			errint := mti.unmarshalMimetypeIndex(item)
+//			if errint != nil {
+//				return errint
+//			}
+//			mti.ObjectIds = insertIntoList(mti.ObjectIds, objID)
+//		}
+//		b, errint := mti.marshalMimetypeIndex()
+//		if errint != nil {
+//			return errint
+//		}
+//		errint = bucket.Put(key, b)
+//		return errint
+//	})
+//	return err
+//}
 
-func (s *DbStorage) updateMimetypeIndex(mt string, objID uint64) error {
+////GetMediaPerMimetype returns all media per mimetype
+//func (s *DbStorage) GetMediaPerMimetype(mt string) ([]*viewing.Media, error) {
+//	var mfs []*viewing.Media
+//	err := s.dbClient.View(func(txn *bolt.Tx) error {
+//		objectIds := MimetypeIndex{}
+//		key := []byte(mimetypeKeyPrefix + mt)
+//		bucket, err := getBucket(mimetypeBucket, txn)
+//		if err != nil {
+//			return err
+//		}
+//		item := bucket.Get(key)
+//		errint := objectIds.unmarshalMimetypeIndex(item)
+//		if errint != nil {
+//			return errint
+//		}
+//		for i := range objectIds.ObjectIds {
+//			media, errint := s.GetByID(objectIds.ObjectIds[i])
+//			if errint != nil {
+//				return errint
+//			}
+//			mfs = append(mfs, media)
+//		}
+//		return errint
+//	})
+//
+//	return mfs, err
+//}
+
+//func (mt *MimetypeIndex) marshalMimetypeIndex() ([]byte, error) {
+//	var b bytes.Buffer
+//	enc := gob.NewEncoder(&b)
+//	err := enc.Encode(mt)
+//	return b.Bytes(), err
+//}
+//
+//func (mt *MimetypeIndex) unmarshalMimetypeIndex(d []byte) error {
+//	b := bytes.NewBuffer(d)
+//	dec := gob.NewDecoder(b)
+//	err := dec.Decode(mt)
+//	return err
+//}
+
+func (s *DbStorage) DeleteMedia(media *deleting.Media) error {
 	err := s.dbClient.Update(func(txn *bolt.Tx) error {
-		bucket, err := getBucket(mimetypeBucket, txn)
+		bucket, err := getBucket(mediaBucket, txn)
 		if err != nil {
 			return err
 		}
-
-		key := []byte(mimetypeKeyPrefix + mt)
-		item := bucket.Get(key)
-		var mti MimetypeIndex
-		if item == nil {
-			mti = MimetypeIndex{
-				ObjectIds: append(make([]uint64, 0), objID),
-			}
-		} else {
-			errint := mti.unmarshalMimetypeIndex(item)
-			if errint != nil {
-				return errint
-			}
-			mti.ObjectIds = insertIntoList(mti.ObjectIds, objID)
-
-		}
-
-		b, errint := mti.marshalMimetypeIndex()
-		if errint != nil {
-			return errint
-		}
-		errint = bucket.Put(key, b)
+		key := []byte(media.Key)
+		errint := bucket.Delete(key)
 		return errint
 	})
-	return err
-}
-
-//GetMediaPerMimetype returns all media per mimetype
-func (s *DbStorage) GetMediaPerMimetype(mt string) ([]*viewing.Media, error) {
-	var mfs []*viewing.Media
-	err := s.dbClient.View(func(txn *bolt.Tx) error {
-		objectIds := MimetypeIndex{}
-		key := []byte(mimetypeKeyPrefix + mt)
-		bucket, err := getBucket(mimetypeBucket, txn)
-		if err != nil {
-			return err
-		}
-		item := bucket.Get(key)
-		errint := objectIds.unmarshalMimetypeIndex(item)
-		if errint != nil {
-			return errint
-		}
-		for i := range objectIds.ObjectIds {
-			media, errint := s.GetByID(objectIds.ObjectIds[i])
-			if errint != nil {
-				return errint
-			}
-			mfs = append(mfs, media)
-		}
-		return errint
-	})
-
-	return mfs, err
-}
-
-func (mt *MimetypeIndex) marshalMimetypeIndex() ([]byte, error) {
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	err := enc.Encode(mt)
-	return b.Bytes(), err
-}
-
-func (mt *MimetypeIndex) unmarshalMimetypeIndex(d []byte) error {
-	b := bytes.NewBuffer(d)
-	dec := gob.NewDecoder(b)
-	err := dec.Decode(mt)
 	return err
 }

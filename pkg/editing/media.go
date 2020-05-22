@@ -14,6 +14,7 @@ type Media struct {
 	Filename string
 	MimeType types.Type
 	Versions []string
+	CheckSum string
 }
 
 //NotFoundError error if media is not found

@@ -1,42 +1,49 @@
 package adding
 
 import (
-	"mime/multipart"
+	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
 	"github.com/satori/go.uuid"
-	"gophoact/pkg/jobqueue"
 	"io"
+	"mime/multipart"
 )
 
 //Service provides media adding
 type Service interface {
 	AddMedia(mpf *io.Reader, mph *multipart.FileHeader) (uint64, error)
-
 }
 
 //Repository access media repository
 type Repository interface {
-	AddMedia(media *Media) (uint64, error)
+	AddMedia(media *Media) (*Media, error)
 }
 
 //FileRepository access file repository
 type FileRepository interface {
 	AddFile(source *io.Reader, media *Media) (error)
+	DeleteDuplicateFile(media *Media) error
 }
 
-//Jobqueue manage jobs
-type Jobqueue interface {
-	EnqueueJob(j jobqueue.Job)
+//FileRepository access file repository
+type IndexRepository interface {
+    FindDocuments(searchWord string) ([]string, error)
+	AddDocument(media *Media) (error)
 }
 
 type service struct {
 	mR Repository
 	mFR FileRepository
-	jq Jobqueue
+	iR IndexRepository
+}
+
+func (e *DuplicateFileError) Error() (string) {
+	return fmt.Sprintf("Duplicate File %s %s", e.key, e.error)
 }
 
 //NewService creates service
-func NewService(r Repository, fr FileRepository, jq Jobqueue) Service {
-	return &service{r, fr, jq}
+func NewService(r Repository, fr FileRepository, ir IndexRepository) Service {
+	return &service{r, fr, ir}
 }
 
 //AddMedia adds media data and file
@@ -45,9 +52,31 @@ func (s *service) AddMedia(mpf *io.Reader, mph *multipart.FileHeader) (uint64, e
 	mf.Filename = mph.Filename
 	mf.Size = uint64(mph.Size)
 	mf.FileID = uuid.NewV4()
-	err := s.mFR.AddFile(mpf, &mf)
+
+	h := sha1.New()
+	var tee io.Reader
+	tee = io.TeeReader(*mpf, h)
+
+
+	err := s.mFR.AddFile(&tee, &mf)
+
+	mf.CheckSum = hex.EncodeToString(h.Sum(nil))
 	if err != nil { return 0, err }
-	id, err := s.mR.AddMedia(&mf)
-	
-	return id, err
+
+	docs, err := s.iR.FindDocuments(mf.CheckSum)
+
+	if err != nil {
+		return  0, err
+	}
+
+	if len(docs) > 0 {
+		err = s.mFR.DeleteDuplicateFile(&mf)
+		return 0, &DuplicateFileError{error:"File already in Database",key: fmt.Sprintf("%s SHA: %v", &mf.FileID, mf.CheckSum)}
+	} else {
+		_, err = s.mR.AddMedia(&mf)
+		s.iR.AddDocument(&mf)
+	}
+
+
+	return mf.ID, err
 }

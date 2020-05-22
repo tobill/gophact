@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"gophoact/pkg/deleting"
 	"path/filepath"
 	"os"
 	"io"
@@ -16,7 +17,6 @@ type FileStorage struct {
 	dirpathThumb string
 
 }
-
 
 //NewFileStorage create new storage for files
 func NewFileStorage(dirpath string) (*FileStorage) {
@@ -74,6 +74,7 @@ func (s *FileStorage) AddFile(source *io.Reader, media *adding.Media) error {
 	if err != nil { return err}
 	defer fd.Close()
 	_, err = io.Copy(fd, *source)
+	fd.Close()
 	return err
 }
 
@@ -89,3 +90,38 @@ func (s *FileStorage) AddSmallFile(source *io.Reader, media *editing.Media) erro
 	return err
 }
 
+//DeleteDuplicateFile delete file from repo
+func (s *FileStorage) DeleteDuplicateFile(media *adding.Media) error {
+	filep, err := s.checkSubDirs(media.FileID.String(), s.dirpathOriginal)
+	if err != nil {
+		return err
+	}
+	fpath := filepath.Join(s.dirpathRoot, s.dirpathOriginal, filep)
+	err = os.Remove(fpath)
+	return  err
+}
+
+func (s *FileStorage) DeleteMedia(media *deleting.Media) error {
+	filep, err := s.checkSubDirs(media.FileID.String(), s.dirpathOriginal)
+	if err != nil {
+		return err
+	}
+	fpath := filepath.Join(s.dirpathRoot, s.dirpathOriginal, filep)
+	err = os.Remove(fpath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat("/path/to/whatever"); err == nil {
+		filep, err = s.checkSubDirs(media.FileID.String(), s.dirpathSmall)
+		if err != nil {
+			return err
+		}
+		fpath = filepath.Join(s.dirpathRoot, s.dirpathSmall, filep)
+		err = os.Remove(fpath)
+		if err != nil {
+			return err
+		}	// path/to/whatever exists
+		return  err
+	}
+	return nil
+}

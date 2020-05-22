@@ -67,7 +67,10 @@ func (s *service) GenerateResizeJob(objetcID uint64) {
     s.EnqueueJob(mtjob)
 }
 
-
+func (s *service) GenerateChkSumJob(objetcID uint64) {
+    mtjob := NewChkSumJob(objetcID, s.es)
+    s.EnqueueJob(mtjob)
+}
 
 func (s *service) CloseQueue () {
     close(s.queue)

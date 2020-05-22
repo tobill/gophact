@@ -14,6 +14,7 @@ type Media struct {
 	Filename string
 	Mimetype types.Type
 	Versions []string
+	CheckSum string
 }
 
 type MimetypeIndex struct {

@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"gophoact/pkg/adding"
+	"gophoact/pkg/deleting"
 	"log"
 	"gophoact/pkg/editing"
 	"github.com/blevesearch/bleve"
@@ -58,8 +60,14 @@ func NewIndexStorage(indexPath string) (*IndexStorage, error) {
 }
 
 //AddDocument to search index
-func (s *IndexStorage) AddDocument(m *editing.Media) (error) {
-	log.Printf("%v", m)
+func (s *IndexStorage) AddDocument(m *adding.Media) (error) {
+	err := s.index.Index(m.Key, m)
+	return err
+}
+
+
+//UpdateDocument to search index
+func (s *IndexStorage) UpdateDocument(m *editing.Media) (error) {
 	err := s.index.Index(m.Key, m)
 	return err
 }
@@ -84,4 +92,9 @@ func (s *IndexStorage) CloseIndex() (error) {
 //GetIndex return search index
 func (s *IndexStorage) GetIndex() (bleve.Index) {
 	return s.index
+}
+
+func (s *IndexStorage) DeleteMedia(media *deleting.Media) error {
+	err := s.index.Delete(media.Key)
+	return err
 }

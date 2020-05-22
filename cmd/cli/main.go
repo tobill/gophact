@@ -142,6 +142,21 @@ func main() {
 			j.Execute()
 		}
 
+	case "create-chksum":
+		view = viewing.NewService(s, fs)
+		es := editing.NewService(s, fs, is)
+		jq := jobqueue.NewService(es)
+		defer jq.CloseQueue()
+		items, err := view.ListAll(0, 128)
+		if err != nil {
+			log.Panic(err)
+		}
+		for _, entry := range items {
+			log.Printf("%v", entry.ID)
+			j := jobqueue.NewChkSumJob(entry.ID, es)
+			j.Execute()
+		}
+
 
 
 	case "search":

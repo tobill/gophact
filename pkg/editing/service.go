@@ -27,7 +27,7 @@ type FileRepository interface {
 
 //IndexRepository access index / search repository
 type IndexRepository interface {
-	AddDocument(m *Media) (error)
+	UpdateDocument(m *Media) (error)
 }
 
 
@@ -64,7 +64,7 @@ func (s *service) SaveMedia(m *Media) (error) {
 	if err != nil {
 		return err
 	}
-	return s.mIR.AddDocument(m)
+	return s.mIR.UpdateDocument(m)
 
 
 }

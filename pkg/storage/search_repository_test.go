@@ -1,9 +1,11 @@
 package storage_test
 
 import (
-	"testing"
+	uuid "github.com/satori/go.uuid"
+	"gophoact/pkg/adding"
+	"gophoact/pkg/deleting"
 	"gophoact/pkg/storage"
-
+	"testing"
 )
 const testIndexPath = "../../testdbindex"
 
@@ -24,7 +26,7 @@ func TestAddAndFindDoc(t *testing.T) {
 	if err != nil { 
 		t.Error(err) 
 	}
-	err = is.AddDocument(item)
+	err = is.UpdateDocument(item)
 	result, err := is.FindDocuments(item.Filename) 
 	if err != nil {
 		t.Error(err)
@@ -41,3 +43,51 @@ func TestAddAndFindDoc(t *testing.T) {
 	}
 }
 
+func TestIndexStorage_DeleteMedia(t *testing.T) {
+
+	is, err := storage.NewIndexStorage(testIndexPath)
+	defer is.CloseIndex()
+
+	if err != nil {
+		t.Error(err)
+	}
+	const searchString =  "de63dfsf"
+	m := adding.Media{
+		FileID:  uuid.NewV4(),
+		ID:       0265635,
+		Key:      "media:0265635",
+		Size:     550,
+		Filename: "testfilename",
+		CheckSum: searchString,
+	}
+
+	is.AddDocument(m)
+
+	docs, err := is.FindDocuments(searchString)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(docs) == 0 {
+		t.Error("should find something to delete")
+	}
+	d1 := docs[0]
+
+	dmedia := deleting.Media{
+		 FileID: uuid.UUID{},
+		 Key:    d1,
+	}
+
+	is.DeleteMedia(&dmedia)
+
+	docs, err = is.FindDocuments(searchString)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(docs) > 0 {
+		t.Error("document should be deleted")
+	}
+
+}
